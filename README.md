@@ -1,6 +1,6 @@
 # Los Alpes - Muebleria
 
-Monorepo base para separar la aplicacion web Next.js del backend Express con TypeScript.
+Repo base para separar la aplicacion web Next.js del backend Express con TypeScript.
 
 ## Estructura
 

@@ -2,40 +2,27 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { categoriasApi, getCategoryImage, type Categoria } from "../../lib/api";
 
 export default function Categorias() {
-  const categorias = [
-    {
-      name: "Living",
-      img: "https://images.unsplash.com/photo-1567016432779-094069958ea5",
-      link: "/shop/categorias/living",
-    },
-    {
-      name: "Dormitorio",
-      img: "https://images.unsplash.com/photo-1505693314120-0d443867891c",
-      link: "/shop/categorias/dormitorio",
-    },
-    {
-      name: "Oficina",
-      img: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
-      link: "/shop/categorias/oficina",
-    },
-    {
-      name: "Comedor",
-      img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c",
-      link: "/shop/categorias/comedor",
-    },
-    {
-      name: "Exterior",
-      img: "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6",
-      link: "/shop/categorias/exterior",
-    },
-    {
-      name: "Decoración",
-      img: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4",
-      link: "/shop/categorias/decoracion",
-    },
-  ];
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const cargar = useCallback(async () => {
+    try {
+      const data = await categoriasApi.listar();
+      setCategorias(Array.isArray(data) ? data : []);
+    } catch {
+      setCategorias([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
 
   return (
     <main className="bg-white text-black">
@@ -63,32 +50,52 @@ export default function Categorias() {
 
       {/* GRID */}
       <section className="px-6 md:px-10 py-16 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-          {categorias.map((cat, i) => (
-            <Link key={i} href={cat.link} className="group block">
-              <div className="relative h-[300px] overflow-hidden rounded-xl">
-                <Image
-                  unoptimized
-                  src={cat.img}
-                  alt={cat.name}
-                  fill
-                  sizes="(max-width:768px) 100vw, 33vw"
-                  className="object-cover group-hover:scale-105 transition duration-300"
-                />
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="h-[300px] animate-pulse rounded-xl bg-gray-200" />
+            ))}
+          </div>
+        )}
 
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition" />
+        {!loading && categorias.length === 0 && (
+          <div className="border p-8 text-center text-gray-500">
+            No hay categorías disponibles.
+          </div>
+        )}
 
-                <div className="absolute bottom-4 left-4">
-                  <p className="text-white text-xl font-semibold tracking-wide">
-                    {cat.name}
-                  </p>
+        {!loading && categorias.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {categorias.map((cat, i) => (
+              <Link
+                key={cat.TIP_TIPO_PRODUCTO}
+                href={`/shop/tienda?categoriaId=${cat.TIP_TIPO_PRODUCTO}`}
+                className="group block"
+              >
+                <div className="relative h-[300px] overflow-hidden rounded-xl">
+                  <Image
+                    unoptimized
+                    src={getCategoryImage(cat.TIP_TIPO_PRODUCTO, i)}
+                    alt={cat.TIP_NOMBRE}
+                    fill
+                    sizes="(max-width:768px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition duration-300"
+                  />
+
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition" />
+
+                  <div className="absolute bottom-4 left-4">
+                    <p className="text-white text-xl font-semibold tracking-wide">
+                      {cat.TIP_NOMBRE}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
+          </div>
+        )}
 
-        </div>
       </section>
 
     </main>

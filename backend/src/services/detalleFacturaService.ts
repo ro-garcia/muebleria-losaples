@@ -27,6 +27,7 @@ export const obtenerDetallesPorFactura = async (facturaId: number) => {
        FROM   MUE_DETALLE_FACTURA
        WHERE  FAC_Factura = :facturaId
        ORDER BY DFA_Detalle_Factura`,
+       
       { facturaId },
     );
     return resultado.rows;

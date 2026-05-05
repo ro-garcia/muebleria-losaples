@@ -4,10 +4,29 @@ import { env } from "../config/env";
 import {
   actualizarDetOrdenVenta,
   crearDetOrdenVenta,
+  DetOrdenVentaServiceError,
   eliminarDetOrdenVenta,
   obtenerDetOrdenVentaPorId,
   obtenerDetallesPorOrden,
 } from "../services/detOrdenVentaService";
+
+const responderError = (
+  response: Response,
+  error: unknown,
+  mensajeServidor: string,
+) => {
+  const statusCode =
+    error instanceof DetOrdenVentaServiceError ? error.statusCode : 500;
+
+  response.status(statusCode).json({
+    ok: false,
+    message:
+      error instanceof DetOrdenVentaServiceError ? error.message : mensajeServidor,
+    ...(env.nodeEnv !== "production" && {
+      error: error instanceof Error ? error.message : "Error desconocido",
+    }),
+  });
+};
 
 // ─── Listar detalles por orden de venta ───────────────────────────────────────
 
@@ -20,13 +39,7 @@ export const listarPorOrden = async (
     const detalles = await obtenerDetallesPorOrden(ordenId);
     response.status(200).json({ ok: true, data: detalles });
   } catch (error) {
-    response.status(500).json({
-      ok: false,
-      message: "Error al obtener los detalles de la orden",
-      ...(env.nodeEnv !== "production" && {
-        error: error instanceof Error ? error.message : "Error desconocido",
-      }),
-    });
+    responderError(response, error, "Error al obtener los detalles de la orden");
   }
 };
 
@@ -49,13 +62,7 @@ export const obtenerDetalle = async (
 
     response.status(200).json({ ok: true, data: detalle });
   } catch (error) {
-    response.status(500).json({
-      ok: false,
-      message: "Error al obtener el detalle de orden",
-      ...(env.nodeEnv !== "production" && {
-        error: error instanceof Error ? error.message : "Error desconocido",
-      }),
-    });
+    responderError(response, error, "Error al obtener el detalle de orden");
   }
 };
 
@@ -73,13 +80,7 @@ export const crear = async (
       data: resultado,
     });
   } catch (error) {
-    response.status(500).json({
-      ok: false,
-      message: "Error al crear el detalle de orden",
-      ...(env.nodeEnv !== "production" && {
-        error: error instanceof Error ? error.message : "Error desconocido",
-      }),
-    });
+    responderError(response, error, "Error al crear el detalle de orden");
   }
 };
 
@@ -104,13 +105,7 @@ export const actualizar = async (
       .status(200)
       .json({ ok: true, message: "Detalle de orden actualizado exitosamente" });
   } catch (error) {
-    response.status(500).json({
-      ok: false,
-      message: "Error al actualizar el detalle de orden",
-      ...(env.nodeEnv !== "production" && {
-        error: error instanceof Error ? error.message : "Error desconocido",
-      }),
-    });
+    responderError(response, error, "Error al actualizar el detalle de orden");
   }
 };
 
@@ -135,12 +130,6 @@ export const eliminar = async (
       .status(200)
       .json({ ok: true, message: "Detalle de orden eliminado exitosamente" });
   } catch (error) {
-    response.status(500).json({
-      ok: false,
-      message: "Error al eliminar el detalle de orden",
-      ...(env.nodeEnv !== "production" && {
-        error: error instanceof Error ? error.message : "Error desconocido",
-      }),
-    });
+    responderError(response, error, "Error al eliminar el detalle de orden");
   }
 };

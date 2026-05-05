@@ -1,6 +1,10 @@
 import oracledb from "oracledb";
 
 import { getDatabaseConnection } from "../config/database";
+import {
+  InventarioServiceError,
+  validarStockProductoSuficiente,
+} from "./inventarioService";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +16,31 @@ export interface NuevoDetOrdenVenta {
   DOV_Subtotal: number;
   DOV_Descuento?: number;
 }
+
+export class DetOrdenVentaServiceError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode = 400,
+  ) {
+    super(message);
+  }
+}
+
+const validarPayload = (datos: NuevoDetOrdenVenta) => {
+  if (datos.DOV_Cantidad <= 0) {
+    throw new DetOrdenVentaServiceError(
+      "La cantidad debe ser mayor a 0.",
+      400,
+    );
+  }
+
+  if (datos.DOV_Subtotal < 0) {
+    throw new DetOrdenVentaServiceError(
+      "El subtotal no puede ser negativo.",
+      400,
+    );
+  }
+};
 
 // ─── Obtener detalles por orden de venta ──────────────────────────────────────
 
@@ -57,9 +86,15 @@ export const obtenerDetOrdenVentaPorId = async (id: number) => {
 // ─── Crear detalle de orden de venta ──────────────────────────────────────────
 
 export const crearDetOrdenVenta = async (datos: NuevoDetOrdenVenta) => {
+  validarPayload(datos);
   let conexion;
   try {
     conexion = await getDatabaseConnection();
+    await validarStockProductoSuficiente(
+      conexion,
+      datos.PRO_Producto,
+      datos.DOV_Cantidad,
+    );
     const resultado = await conexion.execute(
       `INSERT INTO MUE_DETORDENVENTA
          (ODV_Orden_Venta, PRO_Producto, DOV_Cantidad,
@@ -82,6 +117,11 @@ export const crearDetOrdenVenta = async (datos: NuevoDetOrdenVenta) => {
     );
     const outBinds = resultado.outBinds as { id: number[] };
     return { DOV_Det_Orden_Venta: outBinds.id[0] };
+  } catch (error) {
+    if (error instanceof InventarioServiceError) {
+      throw new DetOrdenVentaServiceError(error.message, error.statusCode);
+    }
+    throw error;
   } finally {
     if (conexion) await conexion.close();
   }
@@ -93,9 +133,15 @@ export const actualizarDetOrdenVenta = async (
   id: number,
   datos: NuevoDetOrdenVenta,
 ) => {
+  validarPayload(datos);
   let conexion;
   try {
     conexion = await getDatabaseConnection();
+    await validarStockProductoSuficiente(
+      conexion,
+      datos.PRO_Producto,
+      datos.DOV_Cantidad,
+    );
     const resultado = await conexion.execute(
       `UPDATE MUE_DETORDENVENTA SET
          ODV_Orden_Venta    = :orden,
@@ -117,6 +163,11 @@ export const actualizarDetOrdenVenta = async (
       { autoCommit: true },
     );
     return resultado.rowsAffected ?? 0;
+  } catch (error) {
+    if (error instanceof InventarioServiceError) {
+      throw new DetOrdenVentaServiceError(error.message, error.statusCode);
+    }
+    throw error;
   } finally {
     if (conexion) await conexion.close();
   }

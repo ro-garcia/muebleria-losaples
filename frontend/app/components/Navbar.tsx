@@ -4,10 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { Menu, X, ShoppingCart, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useCart } from "../shop/hooks/useCart";
+import { useSession } from "../shop/hooks/useSession";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { itemCount } = useCart();
+  const { isAuthenticated } = useSession();
 
   return (
     <header className="fixed top-0 left-0 w-full bg-white z-[999] border-b shadow-sm text-black">
@@ -35,15 +39,23 @@ export default function Navbar() {
 
           {/* USUARIO */}
           <User
-            onClick={() => router.push("/shop/login")}
+            onClick={() => router.push(isAuthenticated ? "/shop/cuenta" : "/shop/login")}
             className="w-5 h-5 cursor-pointer text-black hover:opacity-70 transition"
           />
 
           {/* CARRITO */}
-          <ShoppingCart
+          <button
+            type="button"
             onClick={() => router.push("/shop/carrito")}
-            className="w-5 h-5 cursor-pointer text-black hover:opacity-70 transition"
-          />
+            className="relative"
+          >
+            <ShoppingCart className="w-5 h-5 cursor-pointer text-black hover:opacity-70 transition" />
+            {itemCount > 0 && (
+              <span className="absolute -right-2 -top-2 rounded-full bg-black px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {itemCount}
+              </span>
+            )}
+          </button>
 
           {/* MOBILE */}
           <button

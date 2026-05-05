@@ -6,6 +6,7 @@ import {
   anularOrdenVenta,
   cambiarEstadoOrdenVenta,
   crearOrdenVenta,
+  obtenerOrdenVentaDetalle,
   obtenerOrdenVentaPorId,
   obtenerOrdenesVenta,
   obtenerOrdenesVentaPorCliente,
@@ -15,11 +16,13 @@ import {
 // ─── Listar todas las órdenes de venta ───────────────────────────────────────
 
 export const listarOrdenesVenta = async (
-  _request: Request,
+  request: Request,
   response: Response,
 ): Promise<void> => {
   try {
-    const ordenes = await obtenerOrdenesVenta();
+    const search =
+      typeof request.query.search === "string" ? request.query.search : undefined;
+    const ordenes = await obtenerOrdenesVenta(search);
     response.status(200).json({ ok: true, data: ordenes });
   } catch (error) {
     response.status(500).json({
@@ -54,6 +57,33 @@ export const obtenerOrdenVenta = async (
     response.status(500).json({
       ok: false,
       message: "Error al obtener la orden de venta",
+      ...(env.nodeEnv !== "production" && {
+        error: error instanceof Error ? error.message : "Error desconocido",
+      }),
+    });
+  }
+};
+
+export const obtenerOrdenVentaDetalleController = async (
+  request: Request,
+  response: Response,
+): Promise<void> => {
+  try {
+    const id = Number(request.params.id);
+    const detalle = await obtenerOrdenVentaDetalle(id);
+
+    if (!detalle) {
+      response
+        .status(404)
+        .json({ ok: false, message: "Orden de venta no encontrada" });
+      return;
+    }
+
+    response.status(200).json({ ok: true, data: detalle });
+  } catch (error) {
+    response.status(500).json({
+      ok: false,
+      message: "Error al obtener el detalle de la orden",
       ...(env.nodeEnv !== "production" && {
         error: error instanceof Error ? error.message : "Error desconocido",
       }),

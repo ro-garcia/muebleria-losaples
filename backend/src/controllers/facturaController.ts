@@ -6,6 +6,7 @@ import {
   anularFactura,
   cambiarEstadoFactura,
   crearFactura,
+  obtenerFacturaDetalle,
   obtenerFacturaPorId,
   obtenerFacturas,
   obtenerFacturasPorOrden,
@@ -15,11 +16,13 @@ import {
 // ─── Listar todas las facturas ────────────────────────────────────────────────
 
 export const listarFacturas = async (
-  _request: Request,
+  request: Request,
   response: Response,
 ): Promise<void> => {
   try {
-    const facturas = await obtenerFacturas();
+    const search =
+      typeof request.query.search === "string" ? request.query.search : undefined;
+    const facturas = await obtenerFacturas(search);
     response.status(200).json({ ok: true, data: facturas });
   } catch (error) {
     response.status(500).json({
@@ -54,6 +57,31 @@ export const obtenerFactura = async (
     response.status(500).json({
       ok: false,
       message: "Error al obtener la factura",
+      ...(env.nodeEnv !== "production" && {
+        error: error instanceof Error ? error.message : "Error desconocido",
+      }),
+    });
+  }
+};
+
+export const obtenerFacturaDetalleController = async (
+  request: Request,
+  response: Response,
+): Promise<void> => {
+  try {
+    const id = Number(request.params.id);
+    const detalle = await obtenerFacturaDetalle(id);
+
+    if (!detalle) {
+      response.status(404).json({ ok: false, message: "Factura no encontrada" });
+      return;
+    }
+
+    response.status(200).json({ ok: true, data: detalle });
+  } catch (error) {
+    response.status(500).json({
+      ok: false,
+      message: "Error al obtener el detalle de la factura",
       ...(env.nodeEnv !== "production" && {
         error: error instanceof Error ? error.message : "Error desconocido",
       }),

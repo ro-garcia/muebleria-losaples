@@ -332,6 +332,71 @@ const inputCls =
 const selectCls =
   "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black";
 
+interface ManualCorrectionField {
+  id: string;
+  label: string;
+  area: string;
+}
+
+const manualCorrectionFields: ManualCorrectionField[] = [
+  { id: "nombre", label: "Nombre", area: "Cliente" },
+  { id: "documento", label: "Documento", area: "Cliente" },
+  { id: "correo", label: "Correo", area: "Cliente" },
+  { id: "telefono", label: "Telefono", area: "Cliente" },
+  { id: "direccion", label: "Direccion", area: "Cliente" },
+  { id: "producto", label: "Producto", area: "Venta" },
+  { id: "categoria", label: "Categoria", area: "Catalogo" },
+  { id: "precio", label: "Precio", area: "Venta" },
+  { id: "cantidad", label: "Cantidad", area: "Inventario" },
+  { id: "orden", label: "Orden", area: "Venta" },
+  { id: "factura", label: "Factura", area: "Facturacion" },
+  { id: "metodo-pago", label: "Metodo de pago", area: "Pago" },
+];
+
+function ManualCorrectionPills({
+  fields,
+  selectedIds,
+  counts,
+  onToggle,
+}: {
+  fields: ManualCorrectionField[];
+  selectedIds: string[];
+  counts: Record<string, number>;
+  onToggle: (fieldId: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {fields.map((field) => {
+        const active = selectedIds.includes(field.id);
+        const count = counts[field.id] ?? 0;
+
+        return (
+          <button
+            key={field.id}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onToggle(field.id)}
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${
+              active
+                ? "border-black bg-black text-white shadow-sm"
+                : "border-gray-200 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+            }`}
+          >
+            <span>{field.label}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] ${
+                active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SectionCard({
   title,
   subtitle,
@@ -435,6 +500,12 @@ export default function AdminPanel() {
   });
   const [ordenSearch, setOrdenSearch] = useState("");
   const [facturaSearch, setFacturaSearch] = useState("");
+  const [manualCorrectionSelection, setManualCorrectionSelection] = useState<
+    string[]
+  >([]);
+  const [manualCorrectionCounts, setManualCorrectionCounts] = useState<
+    Record<string, number>
+  >({});
 
   // UI
   const [loading, setLoading] = useState(true);
@@ -1143,6 +1214,46 @@ export default function AdminPanel() {
     () => clientesAdmin.map((cliente) => Number(cliente.CLI_CLIENTE)),
     [clientesAdmin],
   );
+
+  const manualCorrectionRanking = useMemo(
+    () =>
+      manualCorrectionFields
+        .map((field) => ({
+          ...field,
+          count: manualCorrectionCounts[field.id] ?? 0,
+        }))
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+    [manualCorrectionCounts],
+  );
+
+  const toggleManualCorrectionField = useCallback((fieldId: string) => {
+    setManualCorrectionSelection((current) =>
+      current.includes(fieldId)
+        ? current.filter((id) => id !== fieldId)
+        : [...current, fieldId],
+    );
+  }, []);
+
+  const clearManualCorrectionSelection = useCallback(() => {
+    setManualCorrectionSelection([]);
+  }, []);
+
+  const registerManualCorrectionSelection = useCallback(() => {
+    if (manualCorrectionSelection.length === 0) {
+      setNotice("No seleccionaste campos corregidos manualmente.");
+      return;
+    }
+
+    setManualCorrectionCounts((current) => {
+      const next = { ...current };
+      for (const fieldId of manualCorrectionSelection) {
+        next[fieldId] = (next[fieldId] ?? 0) + 1;
+      }
+      return next;
+    });
+    setManualCorrectionSelection([]);
+    setNotice("Campos corregidos registrados para analisis.");
+  }, [manualCorrectionSelection]);
 
   const cargarDetalleCliente = async (clienteId: number) => {
     setLoadingClienteDetalle(true);
@@ -4457,6 +4568,89 @@ export default function AdminPanel() {
                 </div>
                 )}
               </DetailModal>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              REPORTES
+          ══════════════════════════════════════════════════════════════ */}
+          {!loading && tab === "reportes" && (
+            <div className="space-y-6">
+              <SectionCard
+                title="Campos corregidos manualmente"
+                subtitle="Selecciona cero o mas campos como pastillas horizontales para registrar cuales se corrigen con mayor frecuencia."
+                actions={
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={clearManualCorrectionSelection}
+                      disabled={manualCorrectionSelection.length === 0}
+                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Limpiar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={registerManualCorrectionSelection}
+                      className="rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+                    >
+                      Registrar seleccion
+                    </button>
+                  </div>
+                }
+              >
+                <div className="space-y-6">
+                  <ManualCorrectionPills
+                    fields={manualCorrectionFields}
+                    selectedIds={manualCorrectionSelection}
+                    counts={manualCorrectionCounts}
+                    onToggle={toggleManualCorrectionField}
+                  />
+
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Seleccion actual
+                    </p>
+                    <p className="mt-1 text-sm text-gray-700">
+                      {manualCorrectionSelection.length > 0
+                        ? manualCorrectionFields
+                            .filter((field) =>
+                              manualCorrectionSelection.includes(field.id),
+                            )
+                            .map((field) => field.label)
+                            .join(", ")
+                        : "Sin campos seleccionados. Puedes dejarlo en cero o seleccionar varios."}
+                    </p>
+                  </div>
+
+                  <div className="overflow-hidden rounded-xl border border-gray-200">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <tr>
+                          <th className="px-4 py-3">Campo</th>
+                          <th className="px-4 py-3">Area</th>
+                          <th className="px-4 py-3 text-right">Correcciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {manualCorrectionRanking.map((field) => (
+                          <tr key={field.id}>
+                            <td className="px-4 py-3 font-medium text-gray-900">
+                              {field.label}
+                            </td>
+                            <td className="px-4 py-3 text-gray-500">
+                              {field.area}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold">
+                              {field.count}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </SectionCard>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 import cors from "cors";
 import express from "express";
-
+import serverlessHttp from "serverless-http";
 import { env } from "./config/env";
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFound } from "./middlewares/notFound";
@@ -65,6 +65,4 @@ app.use("/admin/clientes", clienteRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(env.port, () => {
-  console.log(`Backend escuchando en http://localhost:${env.port}`);
-});
+export const handler = serverlessHttp(app);

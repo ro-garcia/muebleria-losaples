@@ -38,7 +38,8 @@ export const checkDatabaseHealth = async () => {
           void lateConnection.close().catch(console.error);
         }
       })
-      .catch(() => undefined);
+      // Agregamos : void o el tipo que corresponda antes de la flecha
+      .catch((): undefined => undefined);
 
     connection = await withTimeout(connectionPromise, env.db.connectionTimeoutMs, () => {
       connectionTimedOut = true;

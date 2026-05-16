@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { productosApi, type Producto } from "../../../lib/api";
+import { productosApi } from "../../../lib/api";
 import { ProductDetailClient } from "./ProductDetailClient";
 
 export const dynamicParams = false;
@@ -53,18 +53,5 @@ export default async function ProductoDetallePage({
     notFound();
   }
 
-  let productoInicial: Producto | null = null;
-
-  try {
-    productoInicial = await productosApi.obtener(productoId);
-  } catch (error) {
-    console.warn(`Producto ${productoId} se cargara desde el cliente.`, error);
-  }
-
-  return (
-    <ProductDetailClient
-      productoId={productoId}
-      productoInicial={productoInicial}
-    />
-  );
+  return <ProductDetailClient productoId={productoId} />;
 }

@@ -20,9 +20,12 @@ export const env = {
   db: {
     user: process.env.DB_USER ?? "",
     password: process.env.DB_PASSWORD ?? "",
+    connectString: process.env.DB_CONNECT_STRING ?? "",
+    standbyConnectString: process.env.DB_STANDBY_CONNECT_STRING ?? "",
     host: process.env.DB_HOST ?? "",
+    standbyHost: process.env.DB_STANDBY_HOST ?? "",
     port: Number(process.env.DB_PORT ?? 1521),
     serviceName: process.env.DB_SERVICE_NAME ?? "",
-    connectionTimeoutMs: Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 8000),
+    connectionTimeoutMs: Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 5000),
   },
 };

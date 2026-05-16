@@ -261,6 +261,9 @@ const emptyOrdenProcesamientoForm: OrdenProcesamientoForm = {
   numeroGuia: "",
 };
 
+const POWER_BI_DASHBOARD_URL =
+  "https://app.powerbi.com/view?r=eyJrIjoiODdkZmYxZWQtMGM4NC00NGVjLWE3NDEtYzFkNTM3YmIxYjhmIiwidCI6IjgwMjVkMGE2LWM4MDctNDIwYS05YTZjLTg1YzA0ZDU5Nzg2ZiIsImMiOjR9";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const optionalText = (value: string) => {
@@ -1210,11 +1213,6 @@ export default function AdminPanel() {
 
   // ─── Derivados ────────────────────────────────────────────────────────────
 
-  const clientes = useMemo(
-    () => clientesAdmin.map((cliente) => Number(cliente.CLI_CLIENTE)),
-    [clientesAdmin],
-  );
-
   const manualCorrectionRanking = useMemo(
     () =>
       manualCorrectionFields
@@ -1564,11 +1562,6 @@ export default function AdminPanel() {
     }
   };
 
-  const ventasPagadas = facturas.reduce((acc, f) => {
-    if (f.FAC_ESTADO_FACTURA === "ANULADA") return acc;
-    return acc + Number(f.FAC_TOTAL_PAGADO ?? f.FAC_TOTAL ?? 0);
-  }, 0);
-
   const facturaPrincipalOrden = ordenDetalle?.facturas?.[0] ?? null;
   const envioFicticioOrdenActual = ordenDetalle
     ? ordenesEnvioFicticio[Number(ordenDetalle.orden.ODV_ORDEN_VENTA ?? 0)] ?? null
@@ -1814,209 +1807,14 @@ export default function AdminPanel() {
               DASHBOARD
           ══════════════════════════════════════════════════════════════ */}
           {!loading && tab === "dashboard" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  { label: "Ventas pagadas", value: formatCurrency(ventasPagadas) },
-                  { label: "Órdenes",         value: ordenes.length },
-                  { label: "Clientes",        value: clientes.length },
-                  { label: "Muebles",         value: productos.length },
-                ].map(({ label, value }) => (
-                  <div
-                    key={label}
-                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-                  >
-                    <p className="text-sm text-gray-500">{label}</p>
-                    <p className="mt-1 text-2xl font-bold">{value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                  <p className="font-semibold mb-3">Órdenes por estado</p>
-                  <ul className="space-y-2 text-sm">
-                    {["ACTIVO", "FINALIZADO", "ANULADO"].map((e) => (
-                      <li key={e} className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">{e}</span>
-                        <span className="font-medium">
-                          {ordenes.filter((o) => o.ODV_ESTADO === e).length}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                  <p className="font-semibold mb-3">Facturas por estado</p>
-                  <ul className="space-y-2 text-sm">
-                    {["PAGADA", "PENDIENTE", "ACTIVA", "ANULADA"].map((e) => (
-                      <li key={e} className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">{e}</span>
-                        <span className="font-medium">
-                          {facturas.filter((f) => f.FAC_ESTADO_FACTURA === e).length}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {loadingOrdenDetalle && (
-                <div className="h-56 animate-pulse rounded-xl bg-gray-100" />
-              )}
-
-              {!loadingOrdenDetalle && ordenDetalle && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                    <SectionCard title="Orden" subtitle="Datos generales">
-                      <div className="space-y-2 text-sm">
-                        <p><strong>ID:</strong> #{String(ordenDetalle.orden.ODV_ORDEN_VENTA ?? "—")}</p>
-                        <p><strong>Fecha:</strong> {formatDate(String(ordenDetalle.orden.ODV_FECHA ?? ""))}</p>
-                        <p><strong>Estado:</strong> {String(ordenDetalle.orden.ODV_ESTADO ?? "—")}</p>
-                        <p><strong>Total:</strong> {formatCurrency(Number(ordenDetalle.orden.ODV_TOTAL ?? 0))}</p>
-                      </div>
-                    </SectionCard>
-
-                    <SectionCard title="Cliente" subtitle="Datos de envio">
-                      <div className="space-y-2 text-sm">
-                        <p>
-                          <strong>Nombre:</strong>{" "}
-                          {[ordenDetalle.orden.CLI_PRIMER_NOMBRE, ordenDetalle.orden.CLI_PRIMER_APELLIDO]
-                            .filter(Boolean)
-                            .join(" ") || "—"}
-                        </p>
-                        <p><strong>Correo:</strong> {String(ordenDetalle.orden.CLI_CORREO_ELECTRONICO ?? "—")}</p>
-                        <p><strong>Telefono:</strong> {String(ordenDetalle.orden.CLI_TELEFONO ?? "—")}</p>
-                        <p>
-                          <strong>Direccion:</strong>{" "}
-                          {[ordenDetalle.orden.CLI_ZONA_ALDEA, ordenDetalle.orden.CLI_MUNICIPIO, ordenDetalle.orden.CLI_DEPARTAMENTO, ordenDetalle.orden.CLI_PAIS]
-                            .filter(Boolean)
-                            .join(", ") || "—"}
-                        </p>
-                      </div>
-                    </SectionCard>
-
-                    <SectionCard title="Tienda" subtitle="Origen">
-                      <div className="space-y-2 text-sm">
-                        <p><strong>Nombre:</strong> {String(ordenDetalle.orden.TIE_NOMBRE ?? "—")}</p>
-                        <p>
-                          <strong>Ubicacion:</strong>{" "}
-                          {[ordenDetalle.orden.TIE_ZONA_ALDEA, ordenDetalle.orden.TIE_MUNICIPIO, ordenDetalle.orden.TIE_DEPARTAMENTO]
-                            .filter(Boolean)
-                            .join(", ") || "—"}
-                        </p>
-                        <p><strong>Telefono:</strong> {String(ordenDetalle.orden.TIE_TELEFONO ?? "—")}</p>
-                      </div>
-                    </SectionCard>
-
-                    <SectionCard title="Pago" subtitle="Factura relacionada">
-                      <div className="space-y-2 text-sm">
-                        <p><strong>Metodo:</strong> {String(ordenDetalle.facturas[0]?.MET_NOMBRE ?? "Sin factura")}</p>
-                        <p><strong>Factura:</strong> {ordenDetalle.facturas[0]?.FAC_FACTURA ? `#${String(ordenDetalle.facturas[0].FAC_FACTURA)}` : "Sin factura"}</p>
-                        <p><strong>Estado factura:</strong> {String(ordenDetalle.facturas[0]?.FAC_ESTADO_FACTURA ?? "—")}</p>
-                        <p><strong>Pagado:</strong> {formatCurrency(Number(ordenDetalle.facturas[0]?.FAC_TOTAL_PAGADO ?? 0))}</p>
-                      </div>
-                    </SectionCard>
-                  </div>
-
-                  <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <div className="border-b border-gray-100 px-6 py-4">
-                      <p className="font-semibold">Productos de la orden</p>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[860px] text-sm">
-                        <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                          <tr>
-                            <th className="px-5 py-3">Producto</th>
-                            <th className="px-5 py-3">Cant.</th>
-                            <th className="px-5 py-3 text-right">Precio</th>
-                            <th className="px-5 py-3 text-right">Descuento</th>
-                            <th className="px-5 py-3 text-right">Impuesto</th>
-                            <th className="px-5 py-3 text-right">Subtotal</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {ordenDetalle.items.map((item, index) => (
-                            <tr key={`${item.DOV_DET_ORDEN_VENTA ?? index}-${item.PRO_PRODUCTO ?? index}`}>
-                              <td className="px-5 py-3">
-                                <p className="font-medium">{String(item.PRO_NOMBRE ?? "—")}</p>
-                                <p className="text-xs text-gray-500">{String(item.PRO_CODIGO ?? "—")}</p>
-                              </td>
-                              <td className="px-5 py-3">{String(item.DOV_CANTIDAD ?? item.DFA_CANTIDAD ?? 0)}</td>
-                              <td className="px-5 py-3 text-right">{formatCurrency(Number(item.DOV_PRECIO_UNITARIO ?? item.DFA_PRECIO ?? 0))}</td>
-                              <td className="px-5 py-3 text-right">{formatCurrency(Number(item.DOV_DESCUENTO ?? item.DFA_DESCUENTO ?? 0))}</td>
-                              <td className="px-5 py-3 text-right">{formatCurrency(Number(item.DFA_IMPUESTO ?? 0))}</td>
-                              <td className="px-5 py-3 text-right font-medium">{formatCurrency(Number(item.DOV_SUBTOTAL ?? item.DFA_SUBTOTAL ?? 0))}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {envioFicticioOrdenActual && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                      <p className="font-semibold">Datos de envío.</p>
-                      <div className="mt-2 grid gap-2 md:grid-cols-3">
-                        <p>
-                          <strong>Empresa:</strong>{" "}
-                          {envioFicticioOrdenActual.empresaTransporte}
-                        </p>
-                        <p>
-                          <strong>Guía:</strong>{" "}
-                          {envioFicticioOrdenActual.numeroGuia}
-                        </p>
-                        <p>
-                          <strong>Registro visual:</strong>{" "}
-                          {formatDate(envioFicticioOrdenActual.procesadoEn)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <p><strong>Subtotal:</strong> {formatCurrency(Number(ordenDetalle.orden.ODV_SUBTOTAL ?? 0))}</p>
-                        <p><strong>Descuento:</strong> {formatCurrency(Number(ordenDetalle.orden.ODV_DESCUENTO ?? 0))}</p>
-                        <p><strong>Impuesto:</strong> {formatCurrency(Number(ordenDetalle.orden.ODV_IMPUESTO ?? 0))}</p>
-                        <p className="text-base text-black"><strong>Total:</strong> {formatCurrency(Number(ordenDetalle.orden.ODV_TOTAL ?? 0))}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          disabled={saving || ordenDetalle.orden.ODV_ESTADO !== "ACTIVO"}
-                          onClick={() =>
-                            abrirProcesarOrdenModal(
-                              Number(ordenDetalle.orden.ODV_ORDEN_VENTA),
-                            )
-                          }
-                          className="rounded-lg border px-4 py-2 text-sm font-semibold hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {envioFicticioOrdenActual ? "Editar envío" : "Procesar"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={() => void cambiarEstadoOrden(Number(ordenDetalle.orden.ODV_ORDEN_VENTA), "FINALIZADO")}
-                          className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
-                        >
-                          Finalizar
-                        </button>
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={() => void cambiarEstadoOrden(Number(ordenDetalle.orden.ODV_ORDEN_VENTA), "ANULADO")}
-                          className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                        >
-                          Anular
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <iframe
+                title="Reportes Proyecto (2)"
+                src={POWER_BI_DASHBOARD_URL}
+                className="h-[calc(100vh-11rem)] min-h-[520px] w-full"
+                frameBorder="0"
+                allowFullScreen
+              />
             </div>
           )}
 
